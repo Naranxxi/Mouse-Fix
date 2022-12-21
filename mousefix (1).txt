@@ -1,0 +1,116 @@
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local uis = UserInputService
+local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+
+local sideClosed = false
+local closed = false
+
+local connections = {}
+
+if StarterGui:FindFirstChild("MouseFix") then
+	StarterGui.MouseFix:Destroy()
+end
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "MouseFix"
+local CodeBox = Instance.new("Frame")
+Gui.Parent = CoreGui
+CodeBox.Parent = Gui
+CodeBox.Name = "CodeBox"
+CodeBox.BackgroundColor3 = Color3.new(0.0823529, 0.0745098, 0.0784314)
+CodeBox.BorderSizePixel = 0
+CodeBox.Size = UDim2.new(0, 2000, 0, 2000)
+CodeBox.Position = UDim2.new(0, 0,0 , 0)
+CodeBox.Transparency = 1
+UserInputService.OverrideMouseIconBehavior = Enum.OverrideMouseIconBehavior.ForceHide
+local mouseInGui = true
+
+RunService:BindToRenderStep("IdkCursor", 1, function()
+	local customCursor = Instance.new("ImageLabel")
+	if mouseInGui then
+		local mouseLocation = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+		customCursor.Position = UDim2.fromOffset(
+			mouseLocation.X - customCursor.AbsoluteSize.X / 2,
+			mouseLocation.Y - customCursor.AbsoluteSize.Y / 2
+		)
+	else
+		UserInputService.OverrideMouseIconBehavior = Enum.OverrideMouseIconBehavior.None
+		customCursor:Destroy()
+		RunService:UnbindFromRenderStep("IdkCursor")
+	end
+end)
+
+
+
+function onBarInput(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		local lastPos = UserInputService.GetMouseLocation(UserInputService)
+		local mainPos = CodeBox.AbsolutePosition
+		local offset = mainPos - lastPos
+		local currentPos = offset + lastPos
+		RunService.BindToRenderStep(RunService, "drag", 1, function()
+			local newPos = UserInputService.GetMouseLocation(UserInputService)
+			if newPos ~= lastPos then
+				local currentX = (offset + newPos).X
+				local currentY = (offset + newPos).Y
+				local viewportSize = workspace.CurrentCamera.ViewportSize
+				print("back here it shall be working")
+				if
+					(currentX < 0 and currentX < currentPos.X)
+					or (
+						currentX > (viewportSize.X - (sideClosed and 131 or CodeBox.AbsoluteSize.X))
+							and currentX > currentPos.X
+					)
+				then
+					if currentX < 0 then
+						currentX = 0
+					else
+						currentX = viewportSize.X - (sideClosed and 131 or CodeBox.AbsoluteSize.X)
+					end
+				end
+				if
+					(currentY < 0 and currentY < currentPos.Y)
+					or (
+						currentY > (viewportSize.Y - (closed and 19 or CodeBox.AbsoluteSize.Y) - 36)
+							and currentY > currentPos.Y
+					)
+				then
+					if currentY < 0 then
+						currentY = 0
+					else
+						currentY = viewportSize.Y - (closed and 19 or CodeBox.AbsoluteSize.Y) - 36
+					end
+				end
+				currentPos = Vector2.new(currentX, currentY)
+				lastPos = newPos
+				TweenService.Create(
+					TweenService,
+					CodeBox,
+					TweenInfo.new(0.1),
+					{ Position = UDim2.new(0, currentPos.X, 0, currentPos.Y) }
+				):Play()
+			end
+			-- if input.UserInputState ~= Enum.UserInputState.Begin then
+			--     RunService.UnbindFromRenderStep(RunService, "drag")
+			-- end
+		end)
+		table.insert(
+			connections,
+			UserInputService.InputEnded:Connect(function(inputE)
+				if input == inputE then
+					RunService:UnbindFromRenderStep("drag")
+					print("Input Ended prob this makes dont work :rage:")
+				end
+			end)
+		)
+	end
+end
+
+UserInputService.InputBegan:Connect(function(Input,aoe)
+	if not aoe then
+		onBarInput(Input)
+	end
+end)
